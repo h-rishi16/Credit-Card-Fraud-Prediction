@@ -67,7 +67,6 @@ if mode == "Demo Mode (recommended)":
     explainer = shap.Explainer(model, bg)
     shap_values = explainer(X_row)
 
-    st.set_option("deprecation.showPyplotGlobalUse", False)
     shap.plots.waterfall(shap_values[0], max_display=15, show=False)
     st.pyplot(bbox_inches="tight")
 
