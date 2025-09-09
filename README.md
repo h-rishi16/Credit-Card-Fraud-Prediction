@@ -64,7 +64,8 @@ credit-card-fraud-prediction/
 │── app.py                          # Streamlit web app for demo/manual predictions and SHAP explanations
 │── fraud_xgb_model.pkl             # Trained XGBoost model (joblib)
 │── fraud_features.pkl              # List of feature names used for prediction
-│── creditcard.csv                  # Dataset for demo/testing
+│── creditcard.csv                  # Dataset for training and testing
+│── fraud_demo.csv                  # Dataset for demo in App
 │── README.md                       # Project documentation
 │── requirements.txt                # Dependencies
 ```
@@ -93,10 +94,12 @@ streamlit run app.py
 ```
 
 ## Web App Usage
-- Open the app in your browser (usually at `http://localhost:8501/`).
+- Open the app [here](https://h-rishi16-credit-card-fraud-prediction-app-aaxvoy.streamlit.app).
 - Choose between **Demo Mode** (sample real transactions) or **Manual Input** (enter custom feature values).
 - View predictions (Fraudulent or Genuine) and probability scores.
 - Explore SHAP explanations showing which features contributed most to the prediction.
+
+## For Streamlit App Demo Mode, the smaller **fraud_demo.csv** (sampled dataset) is used instead of the full Kaggle dataset.
 
 ## Skills Demonstrated
 - Data cleaning and preprocessing
