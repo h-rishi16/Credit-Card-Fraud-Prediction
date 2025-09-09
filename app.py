@@ -11,7 +11,7 @@ features = joblib.load("fraud_features.pkl")
 # Load dataset for demo mode
 @st.cache_data
 def load_data():
-    df = pd.read_csv("creditcard.csv")
+    df = pd.read_csv("fraud_demo.csv")
     return df
 
 df = load_data()
