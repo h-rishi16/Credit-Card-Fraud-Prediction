@@ -4,7 +4,7 @@ import numpy as np
 import joblib
 import shap
 
-# --- Load model & features ---
+#Load model & features
 model = joblib.load("fraud_xgb_model.pkl")
 features = joblib.load("fraud_features.pkl")
 
@@ -23,15 +23,13 @@ This app predicts whether a transaction is **fraudulent or genuine** using a tra
 
 ### Modes
 - **Manual Input**: Enter feature values yourself  
-- **Demo Mode**: Pick a real transaction from the dataset (recommended)  
+- **Demo Mode**: Pick a real transaction from the dataset 
 """)
 
-# --- Mode selection ---
-mode = st.radio("Choose Mode:", ["Demo Mode (recommended)", "Manual Input"])
+#Mode selection
+mode = st.radio("Choose Mode:", ["Demo Mode", "Manual Input"])
 
-# =========================
 # DEMO MODE
-# =========================
 if mode == "Demo Mode (recommended)":
     st.sidebar.header("Demo Mode Settings")
     case_type = st.sidebar.selectbox("Pick transaction type:", ["Fraud", "Genuine"])
@@ -46,7 +44,7 @@ if mode == "Demo Mode (recommended)":
     X_row = row.drop("Class", axis=1)
     y_true = row["Class"].values[0]
 
-    # Prediction
+# Prediction
     prob = model.predict_proba(X_row)[0, 1]
     pred = (prob >= 0.5).astype(int)
 
@@ -61,7 +59,7 @@ if mode == "Demo Mode (recommended)":
 
     st.caption(f"True label: {'Fraud' if y_true==1 else 'Genuine'}")
 
-    # SHAP explanation
+# SHAP explanation
     st.subheader("Local SHAP Explanation")
     bg = df.drop("Class", axis=1).sample(2000, random_state=42)
     explainer = shap.Explainer(model, bg)
@@ -70,9 +68,7 @@ if mode == "Demo Mode (recommended)":
     shap.plots.waterfall(shap_values[0], max_display=15, show=False)
     st.pyplot(bbox_inches="tight")
 
-# =========================
 # MANUAL INPUT MODE
-# =========================
 else:
     st.sidebar.header("Manual Input")
     input_data = {}
