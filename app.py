@@ -93,3 +93,8 @@ else:
         shap_values = explainer(X_input)
         shap.plots.waterfall(shap_values[0], max_display=15, show=False)
         st.pyplot(bbox_inches="tight")
+#Fix 1
+fig, ax = plt.subplots()
+ax.scatter([1, 2, 3], [1, 2, 3])
+# other plotting actions...
+st.pyplot(fig)
