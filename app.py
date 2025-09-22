@@ -10,7 +10,7 @@ from xgboost import XGBClassifier
 @st.cache_resource
 def load_model():
     model = joblib.load("fraud_xgb_model.pkl")          # saved model
-    features = joblib.load("fraud_xgb_features.pkl")   # saved feature list
+    features = joblib.load("fraud_features.pkl")   # saved feature list
     return model, features
 
 xgb, feature_names = load_model()
