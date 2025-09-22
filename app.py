@@ -1,101 +1,110 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import joblib
 import shap
 import matplotlib.pyplot as plt
+from xgboost import XGBClassifier
 
-#Load model & features
-model = joblib.load("fraud_xgb_model.pkl")
-features = joblib.load("fraud_features.pkl")
+# Load trained model & features
 
-# Load dataset for demo mode
-@st.cache_data
-def load_data():
-    df = pd.read_csv("fraud_demo.csv")
-    return df
+@st.cache_resource
+def load_model():
+    model = joblib.load("xgb_model.pkl")          # saved model
+    features = joblib.load("xgb_features.pkl")   # saved feature list
+    return model, features
 
-df = load_data()
+xgb, feature_names = load_model()
+
+# Streamlit UI
 
 st.title("Credit Card Fraud Detection App")
+st.write(
+    "This app predicts whether a credit card transaction is **fraudulent or normal**, "
+    "using a trained XGBoost model. It also explains the prediction with SHAP."
+)
 
-st.markdown("""
-This app predicts whether a transaction is **fraudulent or genuine** using a trained XGBoost model.
+# Example input form
+st.subheader("Enter transaction details:")
 
-### Modes
-- **Manual Input**: Enter feature values yourself  
-- **Demo Mode**: Pick a real transaction from the dataset 
-""")
+loan_amnt = st.number_input("Loan Amount", min_value=100, max_value=50000, value=5000)
+term = st.selectbox("Term", options=[36, 60])
+int_rate = st.number_input("Interest Rate (%)", min_value=5.0, max_value=40.0, value=15.0)
+grade = st.selectbox("Loan Grade", options=list("ABCDEFG"))
+sub_grade = st.text_input("Sub Grade (e.g. B3, C5)", value="B3")
+emp_length = st.selectbox("Employment Length", options=["< 1 year", "1-3 years", "3-5 years", "5-10 years", "10+ years"])
+home_ownership = st.selectbox("Home Ownership", options=["RENT", "OWN", "MORTGAGE", "OTHER"])
+annual_inc = st.number_input("Annual Income", min_value=5000, max_value=200000, value=60000)
+purpose = st.selectbox("Purpose", options=["credit_card", "car", "small_business", "other"])
+dti = st.number_input("DTI (Debt-to-Income Ratio)", min_value=0.0, max_value=100.0, value=15.0)
+revol_util = st.number_input("Revolving Utilization (%)", min_value=0.0, max_value=200.0, value=40.0)
+total_acc = st.number_input("Total Accounts", min_value=1, max_value=100, value=10)
 
-#Mode selection
-mode = st.radio("Choose Mode:", ["Demo Mode", "Manual Input"])
+# Manual input
+input_data = pd.DataFrame([{
+    "loan_amnt": loan_amnt,
+    "term": term,
+    "int_rate": int_rate,
+    "grade": grade,
+    "sub_grade": sub_grade,
+    "emp_length": emp_length,
+    "home_ownership": home_ownership,
+    "annual_inc": annual_inc,
+    "purpose": purpose,
+    "dti": dti,
+    "revol_util": revol_util,
+    "total_acc": total_acc
+}])
 
-# DEMO MODE
-if mode == "Demo Mode (recommended)":
-    st.sidebar.header("Demo Mode Settings")
-    case_type = st.sidebar.selectbox("Pick transaction type:", ["Fraud", "Genuine"])
+# Prediction Function
 
-    if case_type == "Fraud":
-        fraud_cases = df[df["Class"] == 1]
-        row = fraud_cases.sample(1, random_state=np.random.randint(1000))
-    else:
-        genuine_cases = df[df["Class"] == 0]
-        row = genuine_cases.sample(1, random_state=np.random.randint(1000))
+def predict_and_explain(input_df):
+    # One-hot encode to match training features
+    input_encoded = pd.get_dummies(input_df)
+    input_encoded = input_encoded.reindex(columns=feature_names, fill_value=0)
 
-    X_row = row.drop("Class", axis=1)
-    y_true = row["Class"].values[0]
+    # Prediction
+    prob = xgb.predict_proba(input_encoded)[:, 1][0]
+    pred_label = "🚨 Fraudulent Transaction" if prob >= 0.5 else "✅ Normal Transaction"
 
-# Prediction
-    prob = model.predict_proba(X_row)[0, 1]
-    pred = (prob >= 0.5).astype(int)
+    st.subheader(f"Prediction: {pred_label}")
+    st.write(f"Fraud Probability: **{prob:.2f}**")
 
-    st.subheader("Transaction Details")
-    st.write(X_row)
+    # SHAP Explainability
+    try:
+        explainer = shap.TreeExplainer(xgb)
+        shap_values = explainer(input_encoded)
 
-    st.subheader("Prediction Result")
-    if pred == 1:
-        st.error(f"Fraudulent Transaction Detected! (Probability: {prob:.2f})")
-    else:
-        st.success(f"Genuine Transaction (Probability of Fraud: {prob:.2f})")
+        st.subheader("Feature Contribution (SHAP)")
+        fig = plt.figure(figsize=(8, 4))
+        shap.plots.waterfall(shap_values[0], show=False)
+        st.pyplot(fig)
+        plt.close(fig)
 
-    st.caption(f"True label: {'Fraud' if y_true==1 else 'Genuine'}")
+    except Exception as e:
+        st.error(f"SHAP explanation failed: {e}")
 
-# SHAP explanation
-    st.subheader("Local SHAP Explanation")
-    bg = df.drop("Class", axis=1).sample(2000, random_state=42)
-    explainer = shap.Explainer(model, bg)
-    shap_values = explainer(X_row)
+# Buttons
 
-    shap.plots.waterfall(shap_values[0], max_display=15, show=False)
-    st.pyplot(bbox_inches="tight")
+col1, col2 = st.columns(2)
 
-# MANUAL INPUT MODE
-else:
-    st.sidebar.header("Manual Input")
-    input_data = {}
+with col1:
+    if st.button("Predict from Input"):
+        predict_and_explain(input_data)
 
-    for col in features:
-        input_data[col] = st.sidebar.number_input(f"{col}", value=0.0, step=0.01)
-
-    X_input = pd.DataFrame([input_data])
-
-    if st.button("Predict"):
-        prob = model.predict_proba(X_input)[0, 1]
-        pred = (prob >= 0.5).astype(int)
-
-        st.subheader("Prediction Result")
-        if pred == 1:
-            st.error(f"Fraudulent Transaction Detected! (Probability: {prob:.2f})")
-        else:
-            st.success(f"Genuine Transaction (Probability of Fraud: {prob:.2f})")
-
-        st.subheader("Local SHAP Explanation")
-        explainer = shap.Explainer(model, X_input)
-        shap_values = explainer(X_input)
-        shap.plots.waterfall(shap_values[0], max_display=15, show=False)
-        st.pyplot(bbox_inches="tight")
-#Fix 1
-fig, ax = plt.subplots()
-ax.scatter([1, 2, 3], [1, 2, 3])
-# other plotting actions...
-st.pyplot(fig)
+with col2:
+    if st.button("Run Demo Transaction"):
+        demo_data = pd.DataFrame([{
+            "loan_amnt": 12000,
+            "term": 36,
+            "int_rate": 29.0,
+            "grade": "G",
+            "sub_grade": "G5",
+            "emp_length": "< 1 year",
+            "home_ownership": "RENT",
+            "annual_inc": 15000,
+            "purpose": "small_business",
+            "dti": 50.0,
+            "revol_util": 130.0,
+            "total_acc": 4
+        }])
+        predict_and_explain(demo_data)
