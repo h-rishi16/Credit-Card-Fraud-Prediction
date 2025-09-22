@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import joblib
 import shap
+import matplotlib.pyplot as plt
 
 #Load model & features
 model = joblib.load("fraud_xgb_model.pkl")
