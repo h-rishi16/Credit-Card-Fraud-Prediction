@@ -9,8 +9,8 @@ from xgboost import XGBClassifier
 
 @st.cache_resource
 def load_model():
-    model = joblib.load("xgb_model.pkl")          # saved model
-    features = joblib.load("xgb_features.pkl")   # saved feature list
+    model = joblib.load("fraud_xgb_model.pkl")          # saved model
+    features = joblib.load("fraud_xgb_features.pkl")   # saved feature list
     return model, features
 
 xgb, feature_names = load_model()
@@ -64,7 +64,7 @@ def predict_and_explain(input_df):
 
     # Prediction
     prob = xgb.predict_proba(input_encoded)[:, 1][0]
-    pred_label = "🚨 Fraudulent Transaction" if prob >= 0.5 else "✅ Normal Transaction"
+    pred_label = "🚨 Fraudulent Transaction" if prob >= 0.5 else "Normal Transaction"
 
     st.subheader(f"Prediction: {pred_label}")
     st.write(f"Fraud Probability: **{prob:.2f}**")
